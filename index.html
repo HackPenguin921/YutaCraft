@@ -21,6 +21,9 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
+      /* ★ z-index と pointer-events 追加 */
+      z-index: 1;
+      pointer-events: none; /* スタート画面ではキャンバスはクリック無効 */
     }
     #character {
       position: absolute;
@@ -30,6 +33,7 @@
       pointer-events: none;
       display: none;
       user-select: none;
+      z-index: 1; /* 低め */
     }
     #monsterImg {
       position: absolute;
@@ -38,6 +42,7 @@
       pointer-events: none;
       display: none;
       user-select: none;
+      z-index: 1; /* 低め */
     }
     #ui {
       position: absolute;
@@ -48,6 +53,7 @@
       font-family: monospace;
       user-select: none;
       display: none;
+      z-index: 5;
     }
     #startScreen {
       position: fixed;
@@ -60,7 +66,7 @@
       color: white;
       font-family: monospace;
       font-size: 36px;
-      z-index: 10;
+      z-index: 10; /* ここが最前面 */
     }
     #startScreen button {
       margin: 10px;
@@ -184,52 +190,34 @@
     const closeExplanationBtn = document.getElementById("closeExplanationBtn");
     const gameOverScreen = document.getElementById("gameOverScreen");
     const retryBtn = document.getElementById("retryBtn");
-    // キャンバスが画面中央にあるため、
-// モンスターやキャラの座標はキャンバス左上基準で計算する必要あり
-
-const canvasRect = canvas.getBoundingClientRect();
-
-// 画像の左上座標を画面の絶対位置に合わせる例
-monsterImg.style.left = `${canvasRect.left + monster.x - monsterDisplayWidth / 2}px`;
-monsterImg.style.top = `${canvasRect.top + monster.y - monsterDisplayHeight / 2}px`;
-
-character.style.left = `${canvasRect.left + char.x - charWidth / 2}px`;
-character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
-
 
     const blockSize = 40;
     const gravity = 1;
     const jumpPower = -15;
     const moveSpeed = 5;
 
-    // ステージ幅・高さ（空中ブロック対応）
     const stageWidth = 24;
     const stageHeight = 5;
 
-    // 地面基準位置
     const groundY = canvas.height - blockSize * 2;
 
-    // 元画像サイズ（ピクセル）
     const monsterOriginalWidth = 691;
     const monsterOriginalHeight = 1111;
     const charOriginalWidth = 189;
     const charOriginalHeight = 502;
 
-    // CSS表示幅に合わせて高さを計算（比率維持）
-    const displayWidth = 80; // 80px幅で統一表示
+    const displayWidth = 80;
     const monsterDisplayWidth = displayWidth;
     const monsterDisplayHeight = (monsterOriginalHeight / monsterOriginalWidth) * displayWidth;
 
     const charWidth = displayWidth;
     const charHeight = (charOriginalHeight / charOriginalWidth) * displayWidth;
 
-    // 当たり判定は表示サイズの80%くらいにするのがおすすめ（透明部分を考慮して）
     const monsterHitboxWidth = monsterDisplayWidth * 0.8;
     const monsterHitboxHeight = monsterDisplayHeight * 0.8;
     const charHitboxWidth = charWidth * 0.8;
     const charHitboxHeight = charHeight * 0.8;
 
-    // ゲーム状態変数
     let char = {
       x: blockSize * 2,
       y: 0,
@@ -257,7 +245,6 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
 
     let currentStage = [];
 
-    // --- ステージ生成 ---
     function generateRandomStage() {
       let stage = new Array(stageWidth * stageHeight).fill(0);
       for(let x=0; x<stageWidth; x++) {
@@ -275,7 +262,6 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
       return stage;
     }
 
-    // --- 描画関数 ---
     function drawBackground() {
       for(let y=0; y<stageHeight; y++) {
         for(let x=0; x<stageWidth; x++) {
@@ -310,15 +296,13 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
       monsterImg.style.display = "block";
 
       const left = monster.x - monsterDisplayWidth / 2;
-      const top = monster.y - monsterDisplayHeight / 2 + 5; // 微調整
+      const top = monster.y - monsterDisplayHeight / 2 + 5;
 
       monsterImg.style.left = `${left}px`;
       monsterImg.style.top = `${top}px`;
     }
 
-    // --- 当たり判定 ---
     function checkGroundCollision() {
-      // 足元のブロック座標
       const footX = Math.floor(char.x / blockSize);
       const footY = Math.floor((char.y + charHeight / 2) / blockSize) + (stageHeight - 2);
 
@@ -361,7 +345,6 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
              dy < (charHitboxHeight / 2 + monsterHitboxHeight / 2);
     }
 
-    // --- ゲーム更新 ---
     function updateMonster() {
       if(gameOver) return;
 
@@ -387,7 +370,6 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
       document.getElementById("life").textContent = life;
     }
 
-    // --- ステージ・アイテム・モンスター配置 ---
     function placeItems() {
       items = [];
       let placedCount = 0;
@@ -420,22 +402,19 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
     }
 
     function resetChar() {
-  char.x = blockSize * 2;
-  char.y = groundY - charHeight / 2;
-  char.vx = 0;
-  char.vy = 0;
-  char.onGround = true;
-}
+      char.x = blockSize * 2;
+      char.y = groundY - charHeight / 2;
+      char.vx = 0;
+      char.vy = 0;
+      char.onGround = true;
+    }
 
-
-    // --- ゲームオーバー ---
     function triggerGameOver() {
       gameOver = true;
       monsterImg.style.display = "none";
       gameOverScreen.style.display = "flex";
     }
 
-    // --- ステージ切替 ---
     function changeStage() {
       currentStage = generateRandomStage();
       placeItems();
@@ -447,7 +426,6 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
       updateUI();
     }
 
-    // --- ゲームループ ---
     function update() {
       if(gameOver) return;
 
@@ -474,7 +452,6 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
       requestAnimationFrame(update);
     }
 
-    // --- キー操作 ---
     document.addEventListener("keydown", e => {
       keys[e.key.toLowerCase()] = true;
       if((e.key === " " || e.key.toLowerCase() === "w" || e.key === "ArrowUp") && char.onGround) {
@@ -498,18 +475,20 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
       requestAnimationFrame(handleMovement);
     }
 
-    // 次のステージへ（アイテム全部取得時）
     function nextStage() {
       changeStage();
     }
 
-    // --- ボタンイベント ---
     startBtn.addEventListener("click", () => {
       startScreen.style.display = "none";
       canvas.style.display = "block";
       character.style.display = "block";
       monsterImg.style.display = "block";
       ui.style.display = "block";
+
+      // ★ pointer-events 有効化（ゲーム中はcanvasクリックも受け付ける場合）
+      canvas.style.pointerEvents = "auto";
+
       changeStage();
       update();
       handleMovement();
@@ -529,9 +508,12 @@ character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
       character.style.display = "none";
       monsterImg.style.display = "none";
       ui.style.display = "none";
+
+      // ★ pointer-events 無効化（ゲーム開始前はキャンバスクリック無効）
+      canvas.style.pointerEvents = "none";
+
       gameOver = false;
     });
-
   </script>
 </body>
 </html>
