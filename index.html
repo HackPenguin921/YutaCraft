@@ -184,6 +184,18 @@
     const closeExplanationBtn = document.getElementById("closeExplanationBtn");
     const gameOverScreen = document.getElementById("gameOverScreen");
     const retryBtn = document.getElementById("retryBtn");
+    // キャンバスが画面中央にあるため、
+// モンスターやキャラの座標はキャンバス左上基準で計算する必要あり
+
+const canvasRect = canvas.getBoundingClientRect();
+
+// 画像の左上座標を画面の絶対位置に合わせる例
+monsterImg.style.left = `${canvasRect.left + monster.x - monsterDisplayWidth / 2}px`;
+monsterImg.style.top = `${canvasRect.top + monster.y - monsterDisplayHeight / 2}px`;
+
+character.style.left = `${canvasRect.left + char.x - charWidth / 2}px`;
+character.style.top = `${canvasRect.top + char.y - charHeight / 2}px`;
+
 
     const blockSize = 40;
     const gravity = 1;
