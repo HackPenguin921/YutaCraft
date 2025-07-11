@@ -44,7 +44,7 @@
       display: none;
       z-index: 5;
     }
-    #startScreen, #gameOverScreen, #explanationModal {
+    #gameOverScreen, #explanationModal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       display: flex;
@@ -55,7 +55,6 @@
       font-family: monospace;
       z-index: 10;
     }
-    #startScreen { background: black; font-size: 36px; }
     #gameOverScreen { background: rgba(0,0,0,0.9); font-size: 48px; display: none; z-index: 30; }
     #explanationModal {
       background: #222;
@@ -83,11 +82,6 @@
   </style>
 </head>
 <body>
-  <div id="startScreen">
-    <div>マイクラ風ゲーム</div>
-    <button id="startBtn">スタート</button>
-    <button id="explanationBtn">説明</button>
-  </div>
   <div id="explanationModal">
     <h2>ゲームの説明</h2>
     <p>矢印キーかA/Dキーで移動、スペース/W/↑でジャンプ。<br>金色を取ってスコア加算、モンスター接触でライフ減少。<br>ライフ0でゲームオーバー、アイテム全取得でステージクリア！</p>
@@ -97,7 +91,7 @@
     <div>ゲームオーバー</div>
     <button id="retryBtn">リトライ</button>
   </div>
-  <canvas id="gameCanvas" width="960" height="540" style="display:none;"></canvas>
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
   <img id="character" src="yuta.png" alt="キャラクター" />
   <img id="monsterImg" src="zombie.png" alt="モンスター" />
   <div id="ui">
@@ -105,243 +99,16 @@
     <div>ライフ: <span id="life">3</span></div>
   </div>
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const character = document.getElementById("character");
-    const monsterImg = document.getElementById("monsterImg");
-    const ui = document.getElementById("ui");
-    const startScreen = document.getElementById("startScreen");
-    const startBtn = document.getElementById("startBtn");
-    const explanationBtn = document.getElementById("explanationBtn");
-    const explanationModal = document.getElementById("explanationModal");
-    const closeExplanationBtn = document.getElementById("closeExplanationBtn");
-    const gameOverScreen = document.getElementById("gameOverScreen");
-    const retryBtn = document.getElementById("retryBtn");
-
-    const blockSize = 40;
-    const gravity = 1;
-    const jumpPower = -15;
-    const moveSpeed = 5;
-    const stageWidth = 24;
-    const stageHeight = 5;
-    const groundY = canvas.height - blockSize * 2;
-
-    const charOriginalWidth = 189, charOriginalHeight = 502;
-    const monsterOriginalWidth = 691, monsterOriginalHeight = 1111;
-    const displayWidth = 80;
-    const charWidth = displayWidth;
-    const charHeight = (charOriginalHeight / charOriginalWidth) * displayWidth;
-    const monsterDisplayWidth = displayWidth;
-    const monsterDisplayHeight = (monsterOriginalHeight / monsterOriginalWidth) * displayWidth;
-    const charHitboxWidth = charWidth * 0.8, charHitboxHeight = charHeight * 0.8;
-    const monsterHitboxWidth = monsterDisplayWidth * 0.8, monsterHitboxHeight = monsterDisplayHeight * 0.8;
-
-    let char = { x: 0, y: 0, vx: 0, vy: 0, width: charHitboxWidth, height: charHitboxHeight, onGround: false };
-    let monster = { x: 600, y: 0, width: monsterHitboxWidth, height: monsterHitboxHeight, vx: 2, hit: false };
-    let items = [], keys = {}, score = 0, life = 3, gameOver = false, currentStage = [];
-
-    function generateRandomStage() {
-      const stage = new Array(stageWidth * stageHeight).fill(0);
-      for (let x = 0; x < stageWidth; x++) {
-        for (let y = stageHeight - 2; y < stageHeight; y++) stage[y * stageWidth + x] = 1;
-      }
-      return stage;
-    }
-
-    function drawBackground() {
-      for (let y = 0; y < stageHeight; y++) {
-        for (let x = 0; x < stageWidth; x++) {
-          if (currentStage[y * stageWidth + x] === 1) {
-            ctx.fillStyle = y >= stageHeight - 2 ? "#4b3621" : "#7c5524";
-            ctx.fillRect(x * blockSize, groundY + (y - (stageHeight - 2)) * blockSize, blockSize, blockSize);
-          }
-        }
-      }
-    }
-
-    function resetChar() {
-      char.x = canvas.width / 2;
-      char.y = groundY - charHeight / 2;
-      char.vx = 0;
-      char.vy = 0;
-      char.onGround = true;
-    }
-
-    function checkGroundCollision() {
-      const footX = Math.floor(char.x / blockSize);
-      const footY = Math.floor((char.y + charHeight / 2) / blockSize) + (stageHeight - 2);
-      if (footX < 0 || footX >= stageWidth || footY < 0 || footY >= stageHeight) return char.onGround = false;
-      if (currentStage[footY * stageWidth + footX] === 1) {
-        char.y = footY * blockSize - charHeight / 2 + groundY - blockSize * (stageHeight - 2);
-        char.vy = 0;
-        return char.onGround = true;
-      }
-      return char.onGround = false;
-    }
-
-    function checkItemCollision() {
-      items.forEach(item => {
-        if (!item.collected) {
-          const dx = Math.abs(char.x - (item.x + item.width / 2));
-          const dy = Math.abs(char.y - (item.y + item.height / 2));
-          if (dx < charHitboxWidth / 2 + item.width / 2 && dy < charHitboxHeight / 2 + item.height / 2) {
-            item.collected = true;
-            score += 10;
-            if (items.every(i => i.collected)) nextStage();
-          }
-        }
-      });
-    }
-
-    function drawItems() {
-      ctx.fillStyle = "gold";
-      items.forEach(item => {
-        if (!item.collected) {
-          ctx.fillRect(item.x, item.y, item.width, item.height);
-        }
-      });
-    }
-
-    function drawCharacter() {
-      character.style.left = `${char.x - charWidth / 2}px`;
-      character.style.top = `${char.y - charHeight / 2}px`;
-      character.style.display = "block";
-    }
-
-    function drawMonster() {
-      monsterImg.style.left = `${monster.x - monsterDisplayWidth / 2}px`;
-      monsterImg.style.top = `${monster.y - monsterDisplayHeight / 2}px`;
-      monsterImg.style.display = "block";
-    }
-
-    function updateMonster() {
-      monster.x += monster.vx;
-      if (monster.x < monster.width / 2 || monster.x > stageWidth * blockSize - monster.width / 2) {
-        monster.vx *= -1;
-      }
-    }
-
-    function updateUI() {
-      document.getElementById("score").textContent = score;
-      document.getElementById("life").textContent = life;
-    }
-
-    function update() {
-      if (gameOver) return;
-      char.vy += gravity;
-      char.y += char.vy;
-      char.x += char.vx;
-      checkGroundCollision();
-      const minX = char.width / 2;
-      const maxX = stageWidth * blockSize - char.width / 2;
-      char.x = Math.max(minX, Math.min(maxX, char.x));
-      checkItemCollision();
-      updateMonster();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBackground();
-      drawItems();
-      drawCharacter();
-      drawMonster();
-      updateUI();
-      requestAnimationFrame(update);
-    }
-
-    function changeStage() {
-      currentStage = generateRandomStage();
-      placeItems();
-      placeMonster();
-      resetChar();
-      score = 0;
-      life = 3;
-      gameOver = false;
-      updateUI();
-    }
-
-    function placeItems() {
-      items = [];
-      let placed = 0;
-      while (placed < 5) {
-        const x = Math.floor(Math.random() * stageWidth);
-        const y = stageHeight - 3;
-        if (currentStage[y * stageWidth + x] === 1) {
-          const px = x * blockSize + 10;
-          const py = groundY - (stageHeight - y - 2) * blockSize - 20;
-          items.push({ x: px, y: py, width: 20, height: 20, collected: false });
-          placed++;
-        }
-      }
-    }
-
-    function placeMonster() {
-      for (let i = 0; i < 100; i++) {
-        const x = Math.floor(Math.random() * stageWidth);
-        const y = stageHeight - 2;
-        if (currentStage[y * stageWidth + x] === 1) {
-          monster.x = x * blockSize + blockSize / 2;
-          monster.y = groundY - monsterDisplayHeight / 2;
-          monster.vx = (Math.random() < 0.5 ? 1 : -1) * 2;
-          monster.hit = false;
-          return;
-        }
-      }
-    }
-
-    document.addEventListener("keydown", e => {
-      keys[e.key.toLowerCase()] = true;
-      if ((e.key === " " || e.key.toLowerCase() === "w" || e.key === "ArrowUp") && char.onGround) {
-        char.vy = jumpPower;
-      }
-    });
-
-    document.addEventListener("keyup", e => {
-      keys[e.key.toLowerCase()] = false;
-    });
-
-    function handleMovement() {
-      if (gameOver) {
-        char.vx = 0;
-      } else if (keys["arrowleft"] || keys["a"]) {
-        char.vx = -moveSpeed;
-      } else if (keys["arrowright"] || keys["d"]) {
-        char.vx = moveSpeed;
-      } else {
-        char.vx = 0;
-      }
-      requestAnimationFrame(handleMovement);
-    }
-
-    function nextStage() {
-      changeStage();
-    }
-
-    startBtn.addEventListener("click", () => {
-      startScreen.style.display = "none";
-      canvas.style.display = "block";
-      character.style.display = "block";
-      monsterImg.style.display = "block";
-      ui.style.display = "block";
+    // 全ゲーム初期化処理を window.onload で即実行
+    window.onload = () => {
+      document.getElementById("gameCanvas").style.display = "block";
+      document.getElementById("character").style.display = "block";
+      document.getElementById("monsterImg").style.display = "block";
+      document.getElementById("ui").style.display = "block";
       changeStage();
       update();
       handleMovement();
-    });
-
-    explanationBtn.addEventListener("click", () => {
-      explanationModal.style.display = "block";
-    });
-
-    closeExplanationBtn.addEventListener("click", () => {
-      explanationModal.style.display = "none";
-    });
-
-    retryBtn.addEventListener("click", () => {
-      gameOverScreen.style.display = "none";
-      startScreen.style.display = "flex";
-      canvas.style.display = "none";
-      character.style.display = "none";
-      monsterImg.style.display = "none";
-      ui.style.display = "none";
-      gameOver = false;
-    });
+    };
   </script>
 </body>
 </html>
