@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>マイクラ風ゲーム</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(#87ceeb, #98fb98);
+    }
+    #character {
+      position: absolute;
+      width: 80px;
+      transition: top 0.1s, left 0.1s;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <img id="character" src="yuta.png" alt="キャラクター">
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const character = document.getElementById("character");
+
+    const blockSize = 40;
+    const gravity = 1;
+    const jumpPower = -15;
+    const moveSpeed = 5;
+
+    let char = {
+      x: canvas.width / 2,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      width: 40,
+      height: 80,
+      onGround: false
+    };
+
+    // 地形：地面の高さ
+    const groundY = canvas.height - blockSize * 2;
+
+    function drawBackground() {
+      for (let y = 0; y < canvas.height; y += blockSize) {
+        for (let x = 0; x < canvas.width; x += blockSize) {
+          if (y >= groundY) {
+            ctx.fillStyle = (x + y) % 80 === 0 ? "#654321" : "#4b3621";
+            ctx.fillRect(x, y, blockSize, blockSize);
+          }
+        }
+      }
+    }
+
+    function drawCharacter() {
+      character.style.left = `${char.x - char.width / 2}px`;
+      character.style.top = `${char.y - char.height / 2}px`;
+    }
+
+    function update() {
+      // 重力
+      char.vy += gravity;
+      char.y += char.vy;
+      char.x += char.vx;
+
+      // 地面との当たり判定
+      if (char.y + char.height / 2 >= groundY) {
+        char.y = groundY - char.height / 2;
+        char.vy = 0;
+        char.onGround = true;
+      } else {
+        char.onGround = false;
+      }
+
+      // 画面外に出ないように制限
+      char.x = Math.max(char.width / 2, Math.min(canvas.width - char.width / 2, char.x));
+
+      // 描画
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      drawCharacter();
+
+      requestAnimationFrame(update);
+    }
+
+    // キー入力処理
+    let keys = {};
+    document.addEventListener("keydown", e => {
+      keys[e.key] = true;
+      if (e.key === " " && char.onGround) {
+        char.vy = jumpPower;
+      }
+    });
+
+    document.addEventListener("keyup", e => {
+      keys[e.key] = false;
+    });
+
+    function handleMovement() {
+      if (keys["ArrowLeft"] || keys["a"]) {
+        char.vx = -moveSpeed;
+      } else if (keys["ArrowRight"] || keys["d"]) {
+        char.vx = moveSpeed;
+      } else {
+        char.vx = 0;
+      }
+      requestAnimationFrame(handleMovement);
+    }
+
+    update();
+    handleMovement();
+  </script>
+</body>
+</html>
