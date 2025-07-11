@@ -1,40 +1,148 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>マイクラ風ゲーム</title>
+  <meta charset="UTF-8" />
+  <title>マイクラ風ゲーム（スタート画面付き）</title>
   <style>
     body {
       margin: 0;
       background-color: #000;
       overflow: hidden;
       font-family: sans-serif;
+      user-select: none;
+      position: relative;
+      height: 100vh;
     }
     canvas {
       display: block;
       background: linear-gradient(#87ceeb, #98fb98);
+      margin: 0 auto;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
     }
     #character {
       position: absolute;
       width: 80px;
       transition: top 0.1s, left 0.1s;
+      pointer-events: none;
+      display: none; /* 最初は非表示 */
+    }
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 20px;
+      font-family: monospace;
+      user-select: none;
+      display: none; /* 最初は非表示 */
+    }
+    #startScreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: black;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-family: monospace;
+      font-size: 36px;
+      z-index: 10;
+    }
+    #startScreen button {
+      margin: 10px;
+      font-size: 24px;
+      padding: 10px 30px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background-color: #4caf50;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    #startScreen button:hover {
+      background-color: #45a049;
+    }
+    #explanationModal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 80vw;
+      max-height: 60vh;
+      overflow-y: auto;
+      box-shadow: 0 0 15px #0f0;
+      display: none;
+      z-index: 20;
+    }
+    #explanationModal button {
+      margin-top: 20px;
+      padding: 8px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #555;
+      color: white;
+    }
+    #explanationModal button:hover {
+      background-color: #888;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="960" height="540"></canvas>
-  <img id="character" src="yuta.png" alt="キャラクター">
+  <!-- スタート画面 -->
+  <div id="startScreen">
+    <div>マイクラ風ゲーム</div>
+    <button id="startBtn">スタート</button>
+    <button id="explanationBtn">説明</button>
+  </div>
+
+  <!-- 説明モーダル -->
+  <div id="explanationModal">
+    <h2>ゲームの説明</h2>
+    <p>
+      ・矢印キーかA/Dキーで左右移動<br>
+      ・スペースキーかWキー、↑キーでジャンプ<br>
+      ・金色の四角（アイテム）を取るとスコアが増える<br>
+      ・赤い四角（モンスター）に触れるとライフが減る<br>
+      ・ライフが0になるとゲームオーバー（未実装）<br>
+    </p>
+    <button id="closeExplanationBtn">閉じる</button>
+  </div>
+
+  <canvas id="gameCanvas" width="960" height="540" style="display:none;"></canvas>
+  <img id="character" src="yuta.png" alt="キャラクター" />
+
+  <div id="ui">
+    <div>スコア: <span id="score">0</span></div>
+    <div>ライフ: <span id="life">3</span></div>
+  </div>
 
   <script>
+    // --- 変数・要素取得 ---
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const character = document.getElementById("character");
+    const startScreen = document.getElementById("startScreen");
+    const startBtn = document.getElementById("startBtn");
+    const explanationBtn = document.getElementById("explanationBtn");
+    const explanationModal = document.getElementById("explanationModal");
+    const closeExplanationBtn = document.getElementById("closeExplanationBtn");
+    const ui = document.getElementById("ui");
 
     const blockSize = 40;
     const gravity = 1;
     const jumpPower = -15;
     const moveSpeed = 5;
 
+    // キャラクター情報
     let char = {
       x: canvas.width / 2,
       y: 0,
@@ -45,8 +153,29 @@
       onGround: false
     };
 
-    // 地形：地面の高さ
     const groundY = canvas.height - blockSize * 2;
+
+    let score = 0;
+    let life = 3;
+
+    const items = [
+      { x: 300, y: groundY - 20, width: 20, height: 20, collected: false },
+      { x: 700, y: groundY - 20, width: 20, height: 20, collected: false }
+    ];
+
+    const monster = {
+      x: 600,
+      y: groundY - 40,
+      width: 40,
+      height: 80,
+      vx: 2,
+      hit: false
+    };
+
+    // キー押下状態
+    let keys = {};
+
+    // --- 描画・更新関数 ---
 
     function drawBackground() {
       for (let y = 0; y < canvas.height; y += blockSize) {
@@ -64,13 +193,61 @@
       character.style.top = `${char.y - char.height / 2}px`;
     }
 
+    function drawItems() {
+      ctx.fillStyle = "gold";
+      items.forEach(item => {
+        if (!item.collected) {
+          ctx.fillRect(item.x, item.y, item.width, item.height);
+        }
+      });
+    }
+
+    function checkItemCollision() {
+      items.forEach(item => {
+        if (!item.collected) {
+          const dx = Math.abs(char.x - (item.x + item.width / 2));
+          const dy = Math.abs(char.y - (item.y + item.height / 2));
+          if (dx < char.width / 2 + item.width / 2 && dy < char.height / 2 + item.height / 2) {
+            item.collected = true;
+            score += 10;
+          }
+        }
+      });
+    }
+
+    function drawMonster() {
+      ctx.fillStyle = monster.hit ? "pink" : "red";
+      ctx.fillRect(monster.x - monster.width / 2, monster.y - monster.height / 2, monster.width, monster.height);
+    }
+
+    function updateMonster() {
+      monster.x += monster.vx;
+      if (monster.x > canvas.width - monster.width / 2 || monster.x < monster.width / 2) {
+        monster.vx *= -1;
+      }
+
+      const dx = Math.abs(char.x - monster.x);
+      const dy = Math.abs(char.y - monster.y);
+      if (dx < char.width / 2 + monster.width / 2 && dy < char.height / 2 + monster.height / 2) {
+        if (!monster.hit) {
+          life = Math.max(0, life - 1);
+          monster.hit = true;
+          setTimeout(() => (monster.hit = false), 1000);
+        }
+      }
+    }
+
+    function updateUI() {
+      document.getElementById("score").textContent = score;
+      document.getElementById("life").textContent = life;
+    }
+
+    // ゲームループ
     function update() {
-      // 重力
       char.vy += gravity;
       char.y += char.vy;
       char.x += char.vx;
 
-      // 地面との当たり判定
       if (char.y + char.height / 2 >= groundY) {
         char.y = groundY - char.height / 2;
         char.vy = 0;
@@ -79,30 +256,23 @@
         char.onGround = false;
       }
 
-      // 画面外に出ないように制限
       char.x = Math.max(char.width / 2, Math.min(canvas.width - char.width / 2, char.x));
 
-      // 描画
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBackground();
+      drawItems();
+      drawMonster();
       drawCharacter();
+
+      checkItemCollision();
+      updateMonster();
+
+      updateUI();
 
       requestAnimationFrame(update);
     }
 
-    // キー入力処理
-    let keys = {};
-    document.addEventListener("keydown", e => {
-      keys[e.key] = true;
-      if (e.key === " " && char.onGround) {
-        char.vy = jumpPower;
-      }
-    });
-
-    document.addEventListener("keyup", e => {
-      keys[e.key] = false;
-    });
-
+    // 移動処理
     function handleMovement() {
       if (keys["ArrowLeft"] || keys["a"]) {
         char.vx = -moveSpeed;
@@ -114,8 +284,49 @@
       requestAnimationFrame(handleMovement);
     }
 
-    update();
-    handleMovement();
+    // --- イベントリスナ ---
+
+    document.addEventListener("keydown", e => {
+      keys[e.key] = true;
+      if ((e.key === " " || e.key === "ArrowUp" || e.key === "w") && char.onGround) {
+        char.vy = jumpPower;
+      }
+    });
+    document.addEventListener("keyup", e => {
+      keys[e.key] = false;
+    });
+
+    startBtn.addEventListener("click", () => {
+      // スタート画面非表示
+      startScreen.style.display = "none";
+      // canvas・キャラ・UIを表示
+      canvas.style.display = "block";
+      character.style.display = "block";
+      ui.style.display = "block";
+
+      // リセット
+      char.x = canvas.width / 2;
+      char.y = 0;
+      char.vx = 0;
+      char.vy = 0;
+      score = 0;
+      life = 3;
+      items.forEach(item => (item.collected = false));
+      monster.x = 600;
+      monster.hit = false;
+
+      update();
+      handleMovement();
+    });
+
+    explanationBtn.addEventListener("click", () => {
+      explanationModal.style.display = "block";
+    });
+
+    closeExplanationBtn.addEventListener("click", () => {
+      explanationModal.style.display = "none";
+    });
+
   </script>
 </body>
 </html>
