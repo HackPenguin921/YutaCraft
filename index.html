@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>スト6風バトルゲーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       margin: 0;
@@ -14,6 +15,7 @@
       display: none;
       margin: 0 auto;
       background: linear-gradient(#555, #222);
+      touch-action: none;
     }
     #ui {
       position: absolute;
@@ -27,7 +29,7 @@
       display: none;
     }
     .bar {
-      width: 300px;
+      width: 45vw;
       height: 20px;
       background: red;
       border: 2px solid #fff;
@@ -36,7 +38,7 @@
       height: 100%;
       background: lime;
     }
-    #startScreen {
+    #startScreen, #deviceSelect {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: #111;
@@ -47,12 +49,12 @@
       justify-content: center;
       z-index: 10;
     }
-    #startScreen h1 {
-      font-size: 48px;
-      margin-bottom: 30px;
+    #startScreen h1, #deviceSelect h2 {
+      font-size: 32px;
+      margin-bottom: 20px;
     }
-    #startScreen button {
-      font-size: 24px;
+    #startScreen button, #deviceSelect button {
+      font-size: 20px;
       margin: 10px;
       padding: 10px 30px;
       cursor: pointer;
@@ -70,13 +72,13 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 18px;
       padding: 20px;
       z-index: 20;
     }
     #explanationModal button {
       margin-top: 20px;
-      font-size: 18px;
+      font-size: 16px;
       padding: 10px 20px;
     }
     #winMessage {
@@ -87,24 +89,78 @@
       justify-content: center;
       background: rgba(0, 0, 0, 0.8);
       color: white;
-      font-size: 48px;
+      font-size: 32px;
       z-index: 50;
       flex-direction: column;
+      animation: fadeIn 1s ease-in-out;
     }
     #winMessage button {
       margin-top: 20px;
-      font-size: 20px;
+      font-size: 16px;
       padding: 10px 20px;
+    }
+    #winMessage p {
+      font-size: 24px;
+      margin-top: 10px;
+      animation: pop 0.8s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #mobileControls {
+      display: none;
+      position: fixed;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+    }
+    .control-button {
+      width: 60px;
+      height: 60px;
+      font-size: 20px;
+      border-radius: 50%;
+      border: none;
+      background-color: #4caf50;
+      color: white;
+    }
+    #specialEffect {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, yellow, orange, red);
+      border-radius: 50%;
+      opacity: 0;
+      z-index: 30;
+      animation: none;
+    }
+    @keyframes boom {
+      0% { transform: scale(0.5); opacity: 0.3; }
+      50% { transform: scale(2.5); opacity: 1; }
+      100% { transform: scale(3); opacity: 0; }
     }
   </style>
 </head>
 <body>
-<div id="startScreen">
+<div id="deviceSelect">
+  <h2>どの端末で遊びますか？</h2>
+  <button onclick="selectDevice('pc')">パソコン</button>
+  <button onclick="selectDevice('mobile')">スマホ</button>
+</div>
+<div id="startScreen" style="display: none;">
   <h1>スト6風バトルゲーム</h1>
   <button onclick="startGame()">スタート</button>
   <button onclick="showExplanation()">説明</button>
 </div>
-
 <div id="explanationModal">
   <div>
     <p><strong>プレイヤー</strong>：左右 ←→、ジャンプ ↑、攻撃 スペース、必殺技 X or M</p>
@@ -112,12 +168,11 @@
     <button onclick="hideExplanation()">閉じる</button>
   </div>
 </div>
-
 <div id="winMessage">
   <div id="winnerText"></div>
+  <p id="winnerQuote"></p>
   <button onclick="location.reload()">もう一度</button>
 </div>
-
 <div id="ui">
   <div>PLAYER HP
     <div class="bar"><div id="playerHp" class="bar-inner" style="width: 100%"></div></div>
@@ -127,140 +182,48 @@
   </div>
 </div>
 <canvas id="gameCanvas" width="960" height="540"></canvas>
+<div id="mobileControls">
+  <button class="control-button" ontouchstart="press('ArrowLeft')" ontouchend="release('ArrowLeft')">←</button>
+  <button class="control-button" ontouchstart="press('ArrowRight')" ontouchend="release('ArrowRight')">→</button>
+  <button class="control-button" ontouchstart="press('ArrowUp')" ontouchend="release('ArrowUp')">↑</button>
+  <button class="control-button" ontouchstart="press(' ')" ontouchend="release(' ')">攻</button>
+  <button class="control-button" ontouchstart="press('x')" ontouchend="release('x')">必</button>
+</div>
+<div id="specialEffect"></div>
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-const gravity = 1;
-const groundY = 470;
-
-const playerImg = new Image();
-playerImg.src = "yuta.png";
-const enemyImg = new Image();
-enemyImg.src = "zombie.png";
-
-let player = {
-  x: 100, y: groundY, vx: 0, vy: 0, width: 80, height: 130,
-  hp: 100, facing: 1, isAttacking: false, jumping: false
-};
-let enemy = {
-  x: 700, y: groundY, vx: 0, vy: 0, width: 80, height: 130,
-  hp: 100, facing: -1, isAttacking: false, jumping: false
-};
-
+let isMobile = false;
 let keys = {};
-document.addEventListener("keydown", e => keys[e.key] = true);
-document.addEventListener("keyup", e => keys[e.key] = false);
-
-function playSound(type) {
-  const sounds = {
-    hit: new Audio("https://freesound.org/data/previews/256/256113_3263906-lq.mp3"),
-    ko: new Audio("https://freesound.org/data/previews/256/256114_3263906-lq.mp3")
-  };
-  sounds[type]?.play();
+function selectDevice(device) {
+  isMobile = (device === 'mobile');
+  document.getElementById("deviceSelect").style.display = "none";
+  document.getElementById("startScreen").style.display = "flex";
+  if (isMobile) document.getElementById("mobileControls").style.display = "flex";
 }
-
-function drawCharacter(c, img) {
-  ctx.save();
-  if (c.facing === -1) {
-    ctx.translate(c.x + c.width / 2, 0);
-    ctx.scale(-1, 1);
-    ctx.translate(-c.x - c.width / 2, 0);
-  }
-  ctx.drawImage(img, c.x, c.y - c.height, c.width, c.height);
-  ctx.restore();
+function press(key) {
+  keys[key] = true;
+  if (key === 'x' || key === 'm') triggerSpecialEffect();
 }
-
-function attack(attacker, target, power = 10) {
-  if (!attacker.isAttacking) {
-    attacker.isAttacking = true;
-    setTimeout(() => attacker.isAttacking = false, 500);
-    if (Math.abs(attacker.x - target.x) < 90 && Math.abs(attacker.y - target.y) < 60) {
-      target.hp -= power;
-      playSound("hit");
-      updateHpBar();
-    }
-  }
+function release(key) {
+  keys[key] = false;
 }
-
-function updateHpBar() {
-  document.getElementById("playerHp").style.width = Math.max(player.hp, 0) + "%";
-  document.getElementById("enemyHp").style.width = Math.max(enemy.hp, 0) + "%";
+function showWinMessage(winner) {
+  const winText = document.getElementById("winnerText");
+  const quote = document.getElementById("winnerQuote");
+  winText.textContent = winner + " WINS!";
+  quote.textContent = (winner === "PLAYER") ? "あほんだら！" : "CPUの勝利...もっと鍛えよう！";
+  document.getElementById("winMessage").style.display = "flex";
 }
-
-function handleInput() {
-  player.vx = 0;
-  if (keys["ArrowLeft"]) player.vx = -5;
-  if (keys["ArrowRight"]) player.vx = 5;
-  if (keys["ArrowUp"] && !player.jumping) {
-    player.vy = -18;
-    player.jumping = true;
-  }
-  if (keys[" "]) attack(player, enemy);
-  if (keys["x"] || keys["X"] || keys["m"] || keys["M"]) attack(player, enemy, 25);
-}
-
-function applyPhysics(c) {
-  c.x += c.vx;
-  c.y += c.vy;
-  c.vy += gravity;
-  if (c.y >= groundY) {
-    c.y = groundY;
-    c.vy = 0;
-    c.jumping = false;
-  }
-}
-
-function enemyAI() {
-  let distance = player.x - enemy.x;
-  if (Math.abs(distance) > 100) {
-    enemy.vx = distance > 0 ? 2 : -2;
-  } else {
-    enemy.vx = 0;
-    if (Math.random() < 0.02) attack(enemy, player);
-    if (Math.random() < 0.01) attack(enemy, player, 25); // 必殺技風
-  }
-}
-
-function update() {
-  handleInput();
-  enemyAI();
-  applyPhysics(player);
-  applyPhysics(enemy);
-  player.facing = player.x < enemy.x ? 1 : -1;
-  enemy.facing = enemy.x < player.x ? 1 : -1;
-
-  if (player.hp <= 0 || enemy.hp <= 0) {
-    playSound("ko");
-    document.getElementById("winnerText").textContent = (player.hp > 0 ? "PLAYER" : "CPU") + " WINS!";
-    document.getElementById("winMessage").style.display = "flex";
-    cancelAnimationFrame(loopId);
-  }
-}
-
-function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawCharacter(player, playerImg);
-  drawCharacter(enemy, enemyImg);
-}
-
-let loopId;
-function gameLoop() {
-  update();
-  render();
-  loopId = requestAnimationFrame(gameLoop);
-}
-
-function startGame() {
-  document.getElementById("startScreen").style.display = "none";
-  document.getElementById("ui").style.display = "flex";
-  canvas.style.display = "block";
-  gameLoop();
-}
-function showExplanation() {
-  document.getElementById("explanationModal").style.display = "flex";
-}
-function hideExplanation() {
-  document.getElementById("explanationModal").style.display = "none";
+function triggerSpecialEffect() {
+  const effect = document.getElementById("specialEffect");
+  effect.style.left = '50%';
+  effect.style.top = '50%';
+  effect.style.transform = 'translate(-50%, -50%)';
+  effect.style.animation = 'boom 0.6s ease-out';
+  effect.style.opacity = 1;
+  setTimeout(() => {
+    effect.style.animation = 'none';
+    effect.style.opacity = 0;
+  }, 600);
 }
 </script>
 </body>
