@@ -27,6 +27,7 @@
       color: white;
       font-size: 18px;
       display: none;
+      z-index: 5;
     }
     .bar {
       width: 45vw;
@@ -112,119 +113,66 @@
       0% { transform: scale(0.5); opacity: 0; }
       100% { transform: scale(1); opacity: 1; }
     }
-    #mobileControls {
-      display: none;
-      position: fixed;
-      bottom: 10px;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 10px;
-    }
-    .control-button {
-      width: 60px;
-      height: 60px;
-      font-size: 20px;
-      border-radius: 50%;
-      border: none;
-      background-color: #4caf50;
-      color: white;
-    }
-    #specialEffect {
-      position: absolute;
-      width: 120px;
-      height: 120px;
-      background: radial-gradient(circle, yellow, orange, red);
-      border-radius: 50%;
-      opacity: 0;
-      z-index: 30;
-      animation: none;
-    }
-    @keyframes boom {
-      0% { transform: scale(0.5); opacity: 0.3; }
-      50% { transform: scale(2.5); opacity: 1; }
-      100% { transform: scale(3); opacity: 0; }
-    }
   </style>
 </head>
 <body>
-<div id="deviceSelect">
-  <h2>どの端末で遊びますか？</h2>
-  <button onclick="selectDevice('pc')">パソコン</button>
-  <button onclick="selectDevice('mobile')">スマホ</button>
-</div>
-<div id="startScreen" style="display: none;">
-  <h1>スト6風バトルゲーム</h1>
-  <button onclick="startGame()">スタート</button>
-  <button onclick="showExplanation()">説明</button>
-</div>
-<div id="explanationModal">
-  <div>
-    <p><strong>プレイヤー</strong>：左右 ←→、ジャンプ ↑、攻撃 スペース、必殺技 X or M</p>
-    <p><strong>CPU</strong>が自動で攻撃してきます！</p>
-    <button onclick="hideExplanation()">閉じる</button>
+  <div id="deviceSelect">
+    <h2>どの端末で遊びますか？</h2>
+    <button onclick="selectDevice('pc')">パソコン</button>
+    <button onclick="selectDevice('mobile')">スマホ</button>
   </div>
-</div>
-<div id="winMessage">
-  <div id="winnerText"></div>
-  <p id="winnerQuote"></p>
-  <button onclick="location.reload()">もう一度</button>
-</div>
-<div id="ui">
-  <div>PLAYER HP
-    <div class="bar"><div id="playerHp" class="bar-inner" style="width: 100%"></div></div>
+  <div id="startScreen" style="display: none;">
+    <h1>スト6風バトルゲーム</h1>
+    <button onclick="startGame()">スタート</button>
+    <button onclick="showExplanation()">説明</button>
   </div>
-  <div>CPU HP
-    <div class="bar"><div id="enemyHp" class="bar-inner" style="width: 100%"></div></div>
+  <div id="explanationModal">
+    <div>
+      <p><strong>操作方法：</strong><br>← → 移動、↑ ジャンプ、スペース 攻撃、X or M 必殺技</p>
+      <button onclick="hideExplanation()">閉じる</button>
+    </div>
   </div>
-</div>
-<canvas id="gameCanvas" width="960" height="540"></canvas>
-<div id="mobileControls">
-  <button class="control-button" ontouchstart="press('ArrowLeft')" ontouchend="release('ArrowLeft')">←</button>
-  <button class="control-button" ontouchstart="press('ArrowRight')" ontouchend="release('ArrowRight')">→</button>
-  <button class="control-button" ontouchstart="press('ArrowUp')" ontouchend="release('ArrowUp')">↑</button>
-  <button class="control-button" ontouchstart="press(' ')" ontouchend="release(' ')">攻</button>
-  <button class="control-button" ontouchstart="press('x')" ontouchend="release('x')">必</button>
-</div>
-<div id="specialEffect"></div>
-<script>
-let isMobile = false;
-let keys = {};
-function selectDevice(device) {
-  isMobile = (device === 'mobile');
-  document.getElementById("deviceSelect").style.display = "none";
-  document.getElementById("startScreen").style.display = "flex";
-  if (isMobile) document.getElementById("mobileControls").style.display = "flex";
-}
-function press(key) {
-  keys[key] = true;
-  if (key === 'x' || key === 'm') triggerSpecialEffect();
-}
-function release(key) {
-  keys[key] = false;
-}
-function showWinMessage(winner) {
-  const winText = document.getElementById("winnerText");
-  const quote = document.getElementById("winnerQuote");
-  winText.textContent = winner + " WINS!";
-  quote.textContent = (winner === "PLAYER") ? "あほんだら！" : "CPUの勝利...もっと鍛えよう！";
-  document.getElementById("winMessage").style.display = "flex";
-}
-function triggerSpecialEffect() {
-  const effect = document.getElementById("specialEffect");
-  effect.style.left = '50%';
-  effect.style.top = '50%';
-  effect.style.transform = 'translate(-50%, -50%)';
-  effect.style.animation = 'boom 0.6s ease-out';
-  effect.style.opacity = 1;
-  setTimeout(() => {
-    effect.style.animation = 'none';
-    effect.style.opacity = 0;
-  }, 600);
-}
-</script>
+  <div id="winMessage">
+    <div id="winnerText"></div>
+    <p id="winnerQuote"></p>
+    <button onclick="location.reload()">もう一度</button>
+  </div>
+  <div id="ui">
+    <div>PLAYER HP
+      <div class="bar"><div id="playerHp" class="bar-inner" style="width: 100%"></div></div>
+    </div>
+    <div>CPU HP
+      <div class="bar"><div id="enemyHp" class="bar-inner" style="width: 100%"></div></div>
+    </div>
+  </div>
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <script>
+    let isMobile = false;
+    function selectDevice(device) {
+      isMobile = (device === 'mobile');
+      document.getElementById("deviceSelect").style.display = "none";
+      document.getElementById("startScreen").style.display = "flex";
+    }
+    function showExplanation() {
+      document.getElementById("explanationModal").style.display = "flex";
+    }
+    function hideExplanation() {
+      document.getElementById("explanationModal").style.display = "none";
+    }
+    function startGame() {
+      document.getElementById("startScreen").style.display = "none";
+      document.getElementById("gameCanvas").style.display = "block";
+      document.getElementById("ui").style.display = "flex";
+      // 実際のゲームロジックはここに実装（キャラの描画、アニメーション、バトル処理など）
+      alert("ゲームを開始！（ここにゲーム処理を追加）");
+    }
+    function showWinMessage(winner) {
+      const winText = document.getElementById("winnerText");
+      const quote = document.getElementById("winnerQuote");
+      winText.textContent = winner + " WINS!";
+      quote.textContent = (winner === "PLAYER") ? "あほんだら！" : "CPUの勝利...もっと鍛えよう！";
+      document.getElementById("winMessage").style.display = "flex";
+    }
+  </script>
 </body>
 </html>
