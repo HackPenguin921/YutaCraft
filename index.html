@@ -79,6 +79,23 @@
       font-size: 18px;
       padding: 10px 20px;
     }
+    #winMessage {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 48px;
+      z-index: 50;
+      flex-direction: column;
+    }
+    #winMessage button {
+      margin-top: 20px;
+      font-size: 20px;
+      padding: 10px 20px;
+    }
   </style>
 </head>
 <body>
@@ -90,19 +107,22 @@
 
 <div id="explanationModal">
   <div>
-    <p><strong>プレイヤー1</strong>：左右 ←→、ジャンプ ↑、攻撃 スペース</p>
-    <p>必殺技：→ ↓ → + x</p>
-    <p><strong>プレイヤー2</strong>：左右 A・D、ジャンプ W、攻撃 F</p>
-    <p>体力が0になったらKO！</p>
+    <p><strong>プレイヤー</strong>：左右 ←→、ジャンプ ↑、攻撃 スペース、必殺技 X or M</p>
+    <p><strong>CPU</strong>が自動で攻撃してきます！</p>
     <button onclick="hideExplanation()">閉じる</button>
   </div>
+</div>
+
+<div id="winMessage">
+  <div id="winnerText"></div>
+  <button onclick="location.reload()">もう一度</button>
 </div>
 
 <div id="ui">
   <div>PLAYER HP
     <div class="bar"><div id="playerHp" class="bar-inner" style="width: 100%"></div></div>
   </div>
-  <div>ENEMY HP
+  <div>CPU HP
     <div class="bar"><div id="enemyHp" class="bar-inner" style="width: 100%"></div></div>
   </div>
 </div>
@@ -114,48 +134,22 @@ const gravity = 1;
 const groundY = 470;
 
 const playerImg = new Image();
-playerImg.src = "yuta.png";
+playerImg.src = "https://i.imgur.com/0rZyQTw.png";
 const enemyImg = new Image();
-enemyImg.src = "zombie.png";
+enemyImg.src = "https://i.imgur.com/7exRk8v.png";
 
 let player = {
-  x: 100,
-  y: groundY,
-  vx: 0,
-  vy: 0,
-  width: 80,
-  height: 130,
-  hp: 100,
-  facing: 1,
-  isAttacking: false,
-  jumping: false
+  x: 100, y: groundY, vx: 0, vy: 0, width: 80, height: 130,
+  hp: 100, facing: 1, isAttacking: false, jumping: false
 };
-
 let enemy = {
-  x: 700,
-  y: groundY,
-  vx: 0,
-  vy: 0,
-  width: 80,
-  height: 130,
-  hp: 100,
-  facing: -1,
-  isAttacking: false,
-  jumping: false
+  x: 700, y: groundY, vx: 0, vy: 0, width: 80, height: 130,
+  hp: 100, facing: -1, isAttacking: false, jumping: false
 };
 
 let keys = {};
-let specialMoveBuffer = [];
-
-document.addEventListener("keydown", e => {
-  keys[e.key] = true;
-  specialMoveBuffer.push(e.key);
-  if (specialMoveBuffer.length > 10) specialMoveBuffer.shift();
-});
-
-document.addEventListener("keyup", e => {
-  keys[e.key] = false;
-});
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
 
 function playSound(type) {
   const sounds = {
@@ -165,35 +159,23 @@ function playSound(type) {
   sounds[type]?.play();
 }
 
-function drawCharacter(character, img) {
+function drawCharacter(c, img) {
   ctx.save();
-  if (character.facing === -1) {
-    ctx.translate(character.x + character.width / 2, 0);
+  if (c.facing === -1) {
+    ctx.translate(c.x + c.width / 2, 0);
     ctx.scale(-1, 1);
-    ctx.translate(-character.x - character.width / 2, 0);
+    ctx.translate(-c.x - c.width / 2, 0);
   }
-  ctx.drawImage(img, character.x, character.y - character.height, character.width, character.height);
+  ctx.drawImage(img, c.x, c.y - c.height, c.width, c.height);
   ctx.restore();
 }
 
-function attack(attacker, target) {
+function attack(attacker, target, power = 10) {
   if (!attacker.isAttacking) {
     attacker.isAttacking = true;
     setTimeout(() => attacker.isAttacking = false, 500);
     if (Math.abs(attacker.x - target.x) < 90 && Math.abs(attacker.y - target.y) < 60) {
-      target.hp -= 10;
-      playSound("hit");
-      updateHpBar();
-    }
-  }
-}
-
-function specialMove(attacker, target) {
-  if (!attacker.isAttacking && attacker.hp > 0 && target.hp > 0) {
-    attacker.isAttacking = true;
-    setTimeout(() => attacker.isAttacking = false, 800);
-    if (Math.abs(attacker.x - target.x) < 120 && Math.abs(attacker.y - target.y) < 80) {
-      target.hp -= 25;
+      target.hp -= power;
       playSound("hit");
       updateHpBar();
     }
@@ -214,35 +196,34 @@ function handleInput() {
     player.jumping = true;
   }
   if (keys[" "]) attack(player, enemy);
-
-  if (specialMoveBuffer.slice(-4).join("") === "ArrowRightArrowDownArrowRightx") {
-    specialMove(player, enemy);
-    specialMoveBuffer = [];
-  }
-
-  enemy.vx = 0;
-  if (keys["a"]) enemy.vx = -5;
-  if (keys["d"]) enemy.vx = 5;
-  if (keys["w"] && !enemy.jumping) {
-    enemy.vy = -18;
-    enemy.jumping = true;
-  }
-  if (keys["f"]) attack(enemy, player);
+  if (keys["x"] || keys["X"] || keys["m"] || keys["M"]) attack(player, enemy, 25);
 }
 
-function applyPhysics(character) {
-  character.x += character.vx;
-  character.y += character.vy;
-  character.vy += gravity;
-  if (character.y >= groundY) {
-    character.y = groundY;
-    character.vy = 0;
-    character.jumping = false;
+function applyPhysics(c) {
+  c.x += c.vx;
+  c.y += c.vy;
+  c.vy += gravity;
+  if (c.y >= groundY) {
+    c.y = groundY;
+    c.vy = 0;
+    c.jumping = false;
+  }
+}
+
+function enemyAI() {
+  let distance = player.x - enemy.x;
+  if (Math.abs(distance) > 100) {
+    enemy.vx = distance > 0 ? 2 : -2;
+  } else {
+    enemy.vx = 0;
+    if (Math.random() < 0.02) attack(enemy, player);
+    if (Math.random() < 0.01) attack(enemy, player, 25); // 必殺技風
   }
 }
 
 function update() {
   handleInput();
+  enemyAI();
   applyPhysics(player);
   applyPhysics(enemy);
   player.facing = player.x < enemy.x ? 1 : -1;
@@ -250,9 +231,9 @@ function update() {
 
   if (player.hp <= 0 || enemy.hp <= 0) {
     playSound("ko");
-    let winner = player.hp > 0 ? "PLAYER" : "ENEMY";
-    alert(winner + " WINS!");
-    location.reload();
+    document.getElementById("winnerText").textContent = (player.hp > 0 ? "PLAYER" : "CPU") + " WINS!";
+    document.getElementById("winMessage").style.display = "flex";
+    cancelAnimationFrame(loopId);
   }
 }
 
@@ -262,10 +243,11 @@ function render() {
   drawCharacter(enemy, enemyImg);
 }
 
+let loopId;
 function gameLoop() {
   update();
   render();
-  requestAnimationFrame(gameLoop);
+  loopId = requestAnimationFrame(gameLoop);
 }
 
 function startGame() {
@@ -274,11 +256,9 @@ function startGame() {
   canvas.style.display = "block";
   gameLoop();
 }
-
 function showExplanation() {
   document.getElementById("explanationModal").style.display = "flex";
 }
-
 function hideExplanation() {
   document.getElementById("explanationModal").style.display = "none";
 }
