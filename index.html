@@ -5,114 +5,23 @@
   <title>スト6風バトルゲーム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background-color: #000;
-      font-family: monospace;
-    }
-    canvas {
-      display: none;
-      margin: 0 auto;
-      background: linear-gradient(#555, #222);
-      touch-action: none;
-    }
-    #ui {
-      position: absolute;
-      top: 10px;
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 20px;
-      color: white;
-      font-size: 18px;
-      display: none;
-      z-index: 5;
-    }
-    .bar {
-      width: 45vw;
-      height: 20px;
-      background: red;
-      border: 2px solid #fff;
-    }
-    .bar-inner {
-      height: 100%;
-      background: lime;
-    }
-    #startScreen, #deviceSelect {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: #111;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-    #startScreen h1, #deviceSelect h2 {
-      font-size: 32px;
-      margin-bottom: 20px;
-    }
-    #startScreen button, #deviceSelect button {
-      font-size: 20px;
-      margin: 10px;
-      padding: 10px 30px;
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-      background-color: #4caf50;
-      color: white;
-    }
-    #explanationModal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.9);
-      color: white;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      padding: 20px;
-      z-index: 20;
-    }
-    #explanationModal button {
-      margin-top: 20px;
-      font-size: 16px;
-      padding: 10px 20px;
-    }
-    #winMessage {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      font-size: 32px;
-      z-index: 50;
-      flex-direction: column;
-      animation: fadeIn 1s ease-in-out;
-    }
-    #winMessage button {
-      margin-top: 20px;
-      font-size: 16px;
-      padding: 10px 20px;
-    }
-    #winMessage p {
-      font-size: 24px;
-      margin-top: 10px;
-      animation: pop 0.8s ease forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    @keyframes pop {
-      0% { transform: scale(0.5); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
+    body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
+    canvas { background: #222; display: none; margin: auto; touch-action: none; }
+    #ui { position: absolute; top: 10px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; color: white; font-size: 18px; display: none; z-index: 5; }
+    .bar { width: 45vw; height: 20px; background: red; border: 2px solid #fff; }
+    .bar-inner { height: 100%; background: lime; }
+    #startScreen, #deviceSelect { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #111; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+    #startScreen h1, #deviceSelect h2 { font-size: 32px; margin-bottom: 20px; }
+    #startScreen button, #deviceSelect button { font-size: 20px; margin: 10px; padding: 10px 30px; cursor: pointer; border: none; border-radius: 8px; background-color: #4caf50; color: white; }
+    #explanationModal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); color: white; display: none; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; padding: 20px; z-index: 20; }
+    #winMessage { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.8); color: white; font-size: 32px; z-index: 50; flex-direction: column; animation: fadeIn 1s ease-in-out; }
+    #winMessage p { font-size: 24px; margin-top: 10px; animation: pop 0.8s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    #specialEffect { position: absolute; width: 120px; height: 120px; background: radial-gradient(circle, yellow, orange, red); border-radius: 50%; opacity: 0; z-index: 30; animation: none; }
+    @keyframes boom { 0% { transform: scale(0.5); opacity: 0.3; } 50% { transform: scale(2.5); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+    #touchControls { position: fixed; bottom: 20px; left: 20px; right: 20px; display: none; justify-content: space-between; z-index: 100; }
+    .touch-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 10px; font-size: 18px; border-radius: 8px; width: 60px; text-align: center; margin: 0 5px; }
   </style>
 </head>
 <body>
@@ -124,13 +33,11 @@
   <div id="startScreen" style="display: none;">
     <h1>スト6風バトルゲーム</h1>
     <button onclick="startGame()">スタート</button>
-    <button onclick="showExplanation()">説明</button>
+    <button onclick="document.getElementById('explanationModal').style.display='flex'">説明</button>
   </div>
   <div id="explanationModal">
-    <div>
-      <p><strong>操作方法：</strong><br>← → 移動、↑ ジャンプ、スペース 攻撃、X or M 必殺技</p>
-      <button onclick="hideExplanation()">閉じる</button>
-    </div>
+    <p>← → 移動、↑ ジャンプ、スペース 攻撃、X/M 必殺技</p>
+    <button onclick="document.getElementById('explanationModal').style.display='none'">閉じる</button>
   </div>
   <div id="winMessage">
     <div id="winnerText"></div>
@@ -138,40 +45,115 @@
     <button onclick="location.reload()">もう一度</button>
   </div>
   <div id="ui">
-    <div>PLAYER HP
-      <div class="bar"><div id="playerHp" class="bar-inner" style="width: 100%"></div></div>
-    </div>
-    <div>CPU HP
-      <div class="bar"><div id="enemyHp" class="bar-inner" style="width: 100%"></div></div>
-    </div>
+    <div>PLAYER HP<div class="bar"><div id="playerHp" class="bar-inner"></div></div></div>
+    <div>CPU HP<div class="bar"><div id="enemyHp" class="bar-inner"></div></div></div>
   </div>
   <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <div id="specialEffect"></div>
+  <div id="touchControls">
+    <div class="touch-btn" ontouchstart="keys['arrowleft'] = true" ontouchend="keys['arrowleft'] = false">←</div>
+    <div class="touch-btn" ontouchstart="keys['arrowright'] = true" ontouchend="keys['arrowright'] = false">→</div>
+    <div class="touch-btn" ontouchstart="keys['arrowup'] = true" ontouchend="keys['arrowup'] = false">↑</div>
+    <div class="touch-btn" ontouchstart="keys[' '] = true" ontouchend="keys[' '] = false">攻</div>
+    <div class="touch-btn" ontouchstart="triggerSpecial()">必</div>
+  </div>
+  <audio id="specialSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_abe9dd2c81.mp3" preload="auto"></audio>
   <script>
-    let isMobile = false;
+    let isMobile = false, canvas, ctx, player, cpu, keys = {}, gameInterval, velocityY = 0, onGround = true;
+
+    // ここに追加
+let playerImg = new Image();
+let cpuImg = new Image();
+
+playerImg.src = 'yuta.png';  // ← ここは画像のファイルパスに置き換えてください
+cpuImg.src = 'zombie.png';
+
     function selectDevice(device) {
       isMobile = (device === 'mobile');
-      document.getElementById("deviceSelect").style.display = "none";
-      document.getElementById("startScreen").style.display = "flex";
+      document.getElementById('deviceSelect').style.display = 'none';
+      document.getElementById('startScreen').style.display = 'flex';
     }
-    function showExplanation() {
-      document.getElementById("explanationModal").style.display = "flex";
-    }
-    function hideExplanation() {
-      document.getElementById("explanationModal").style.display = "none";
-    }
+
     function startGame() {
-      document.getElementById("startScreen").style.display = "none";
-      document.getElementById("gameCanvas").style.display = "block";
-      document.getElementById("ui").style.display = "flex";
-      // 実際のゲームロジックはここに実装（キャラの描画、アニメーション、バトル処理など）
-      alert("ゲームを開始！（ここにゲーム処理を追加）");
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('gameCanvas').style.display = 'block';
+      document.getElementById('ui').style.display = 'flex';
+      if (isMobile) document.getElementById('touchControls').style.display = 'flex';
+
+      canvas = document.getElementById('gameCanvas');
+      ctx = canvas.getContext('2d');
+      player = { x: 100, y: 440, w: 50, h: 100, color: 'blue', hp: 100 };
+      cpu = { x: 800, y: 440, w: 50, h: 100, color: 'red', hp: 100, dir: -1 };
+      gameInterval = setInterval(updateGame, 1000 / 60);
     }
-    function showWinMessage(winner) {
-      const winText = document.getElementById("winnerText");
-      const quote = document.getElementById("winnerQuote");
-      winText.textContent = winner + " WINS!";
-      quote.textContent = (winner === "PLAYER") ? "あほんだら！" : "CPUの勝利...もっと鍛えよう！";
-      document.getElementById("winMessage").style.display = "flex";
+
+    document.addEventListener('keydown', e => {
+      keys[e.key.toLowerCase()] = true;
+      if (e.key.toLowerCase() === 'x' || e.key.toLowerCase() === 'm') triggerSpecial();
+    });
+    document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    function updateGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 移動とジャンプ
+      if (keys['arrowleft']) player.x -= 5;
+      if (keys['arrowright']) player.x += 5;
+      if (keys['arrowup'] && onGround) {
+        velocityY = -12;
+        onGround = false;
+      }
+
+      // 重力
+      velocityY += 0.5;
+      player.y += velocityY;
+      if (player.y >= 440) {
+        player.y = 440;
+        velocityY = 0;
+        onGround = true;
+      }
+
+      // 攻撃処理（スペース）
+      if (keys[' ']) {
+        if (Math.abs(player.x - cpu.x) < 60 && Math.abs(player.y - cpu.y) < 50) cpu.hp -= 0.5;
+      }
+
+      // CPU自動移動・攻撃
+      cpu.x += cpu.dir * 2;
+      if (cpu.x < 600) cpu.dir = 1;
+      if (cpu.x > 880) cpu.dir = -1;
+      if (Math.abs(cpu.x - player.x) < 60 && Math.abs(cpu.y - player.y) < 50) player.hp -= 0.3;
+
+      // 描画
+      ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+      ctx.drawImage(cpuImg, cpu.x, cpu.y, cpu.w, cpu.h);
+
+      document.getElementById('playerHp').style.width = player.hp + '%';
+      document.getElementById('enemyHp').style.width = cpu.hp + '%';
+
+      if (player.hp <= 0 || cpu.hp <= 0) {
+        clearInterval(gameInterval);
+        const winner = player.hp > cpu.hp ? 'PLAYER' : 'CPU';
+        const msg = winner === 'PLAYER' ? 'あほんだら！' : 'CPUの勝利...もっと鍛えよう！';
+        document.getElementById('winnerText').textContent = winner + ' WINS!';
+        document.getElementById('winnerQuote').textContent = msg;
+        document.getElementById('winMessage').style.display = 'flex';
+      }
+    }
+
+    function triggerSpecial() {
+      const fx = document.getElementById('specialEffect');
+      const audio = document.getElementById('specialSound');
+      fx.style.left = (player.x + 25) + 'px';
+      fx.style.top = (player.y + 20) + 'px';
+      fx.style.animation = 'boom 0.6s ease-out';
+      fx.style.opacity = 1;
+      if (Math.abs(player.x - cpu.x) < 100 && Math.abs(player.y - cpu.y) < 60) cpu.hp -= 5;
+      audio.currentTime = 0; audio.play();
+      setTimeout(() => {
+        fx.style.animation = 'none';
+        fx.style.opacity = 0;
+      }, 600);
     }
   </script>
 </body>
