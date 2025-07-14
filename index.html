@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<title>スマブラ風バトルゲーム</title>
+<title>スマブラ風バトルゲーム（ジャンプ修正済み）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   body {
@@ -104,7 +104,6 @@
   let player, cpu;
   let keys = {};
   let gameInterval;
-  let velocityY = 0, onGround = true;
 
   // 物理パラメータ
   const gravity = 0.6;
@@ -134,16 +133,13 @@
     player = { x: 100, y: 440, w: 50, h: 100, vx: 0, vy: 0, hp: 100, onGround: false };
     cpu = { x: 800, y: 440, w: 50, h: 100, vx: 0, vy: 0, hp: 100, onGround: false, dir: -1 };
 
-    // ブロックをランダムに生成（地面を除く空中エリア）
     blocks = [];
     for(let i=0; i<blockCount; i++){
       let blockX = Math.random() * (canvas.width - blockWidth - 40) + 20;
       let blockY = Math.random() * (canvas.height - 200 - blockHeight) + 200;
       blocks.push({ x: blockX, y: blockY, w: blockWidth, h: blockHeight });
     }
-    
-    // 地面ブロック（画面下）
-    blocks.push({ x: 0, y: 540 - 20, w: canvas.width, h: 20 });
+    blocks.push({ x: 0, y: canvas.height - 20, w: canvas.width, h: 20 });
 
     gameInterval = setInterval(updateGame, 1000 / 60);
   }
@@ -160,18 +156,17 @@
     return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
   }
 
-  // キャラの床判定＆ブロックに乗る判定（y軸の制御）
+  // 床判定（y軸制御）
   function checkFloor(character) {
     character.onGround = false;
-
     for(let b of blocks){
+      // X範囲内かつ、キャラの足がブロックの上に近づいたら床判定する
       if(
         character.x + character.w > b.x &&
         character.x < b.x + b.w &&
-        character.y + character.h <= b.y + 10 && // 少しの余裕
-        character.y + character.h + character.vy >= b.y // 次フレームで床に乗る
+        character.y + character.h <= b.y + 10 && // 少しの許容
+        character.y + character.h + character.vy >= b.y // 次フレームで床に着く
       ){
-        // 乗っている位置なら床判定
         character.y = b.y - character.h;
         character.vy = 0;
         character.onGround = true;
@@ -180,14 +175,11 @@
     }
   }
 
-  // CPU移動制御（画面全体の横範囲内で反転）
+  // CPU移動処理
   function cpuMove() {
     cpu.vx = cpu.dir * moveSpeed;
-
-    // 壁端で反転
-    if (cpu.x < 0) cpu.dir = 1;
-    if (cpu.x > canvas.width - cpu.w) cpu.dir = -1;
-
+    if (cpu.x <= 0) cpu.dir = 1;
+    if (cpu.x >= canvas.width - cpu.w) cpu.dir = -1;
     cpu.x += cpu.vx;
   }
 
@@ -198,32 +190,33 @@
     player.vx = 0;
     if (keys['arrowleft']) player.vx = -moveSpeed;
     if (keys['arrowright']) player.vx = moveSpeed;
+
     if (keys['arrowup'] && player.onGround) {
       player.vy = -jumpPower;
       player.onGround = false;
     }
 
-    // 重力
+    // 重力加算
     player.vy += gravity;
     player.x += player.vx;
     player.y += player.vy;
     checkFloor(player);
 
-    // 攻撃
+    // 攻撃判定
     if (keys[' ']) {
       if (Math.abs(player.x - cpu.x) < 60 && Math.abs(player.y - cpu.y) < 50) cpu.hp -= 0.5;
     }
 
-    // CPU制御
+    // CPU移動・重力・床判定
     cpuMove();
     cpu.vy += gravity;
     cpu.y += cpu.vy;
     checkFloor(cpu);
 
-    // CPU攻撃
+    // CPU攻撃判定
     if (Math.abs(cpu.x - player.x) < 60 && Math.abs(cpu.y - player.y) < 50) player.hp -= 0.3;
 
-    // 画面外に出ないよう制限
+    // 画面外制限
     player.x = Math.min(Math.max(player.x, 0), canvas.width - player.w);
     cpu.x = Math.min(Math.max(cpu.x, 0), canvas.width - cpu.w);
     player.y = Math.min(player.y, canvas.height - player.h);
