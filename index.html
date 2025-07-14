@@ -1,269 +1,359 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<title>スマブラ風バトルゲーム（ジャンプ修正済み）</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  body {
-    margin: 0; overflow: hidden; background: #000; font-family: monospace;
-  }
-  canvas {
-    background: #222; display: none; margin: auto;
-  }
-  #ui {
-    position: absolute; top: 10px; width: 100%;
-    display: flex; justify-content: space-between;
-    padding: 0 20px; color: white; font-size: 18px; display: none; z-index: 5;
-  }
-  .bar {
-    width: 45vw; height: 20px; background: red; border: 2px solid #fff;
-  }
-  .bar-inner {
-    height: 100%; background: lime;
-  }
-  #startScreen {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: #111; color: white; display: flex;
-    flex-direction: column; align-items: center; justify-content: center;
-    z-index: 10;
-  }
-  #startScreen h1 {
-    font-size: 32px; margin-bottom: 20px;
-  }
-  #startScreen button {
-    font-size: 20px; margin: 10px; padding: 10px 30px;
-    cursor: pointer; border: none; border-radius: 8px;
-    background-color: #4caf50; color: white;
-  }
-  #explanationModal {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.9); color: white;
-    display: none; flex-direction: column;
-    align-items: center; justify-content: center;
-    font-size: 18px; padding: 20px; z-index: 20;
-  }
-  #winMessage {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    display: none; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.8); color: white; font-size: 32px;
-    z-index: 50; flex-direction: column; animation: fadeIn 1s ease-in-out;
-  }
-  #winMessage p {
-    font-size: 24px; margin-top: 10px; animation: pop 0.8s ease forwards;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; } to { opacity: 1; }
-  }
-  @keyframes pop {
-    0% { transform: scale(0.5); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  #specialEffect {
-    position: absolute; width: 120px; height: 120px;
-    background: radial-gradient(circle, yellow, orange, red);
-    border-radius: 50%; opacity: 0; z-index: 30; animation: none;
-  }
-  @keyframes boom {
-    0% { transform: scale(0.5); opacity: 0.3; }
-    50% { transform: scale(2.5); opacity: 1; }
-    100% { transform: scale(3); opacity: 0; }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>スト6風バトルゲーム - PC版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: monospace;
+    }
+    canvas {
+      background: #222;
+      display: none;
+      margin: auto;
+      display: block;
+    }
+    #ui {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      color: white;
+      font-size: 18px;
+      display: none;
+      z-index: 5;
+    }
+    .bar {
+      width: 45vw;
+      height: 20px;
+      background: red;
+      border: 2px solid #fff;
+    }
+    .bar-inner {
+      height: 100%;
+      background: lime;
+    }
+    #startScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    #startScreen h1 {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+    #startScreen button {
+      font-size: 20px;
+      margin: 10px;
+      padding: 10px 30px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background-color: #4caf50;
+      color: white;
+    }
+    #explanationModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      color: white;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      padding: 20px;
+      z-index: 20;
+    }
+    #winMessage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 32px;
+      z-index: 50;
+      flex-direction: column;
+      animation: fadeIn 1s ease-in-out;
+    }
+    #winMessage p {
+      font-size: 24px;
+      margin-top: 10px;
+      animation: pop 0.8s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #specialEffect {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, yellow, orange, red);
+      border-radius: 50%;
+      opacity: 0;
+      z-index: 30;
+      animation: none;
+    }
+    @keyframes boom {
+      0% { transform: scale(0.5); opacity: 0.3; }
+      50% { transform: scale(2.5); opacity: 1; }
+      100% { transform: scale(3); opacity: 0; }
+    }
+  </style>
 </head>
 <body>
+  <div id="startScreen">
+    <h1>スト6風バトルゲーム - PC版</h1>
+    <button onclick="startGame()">スタート</button>
+    <button onclick="document.getElementById('explanationModal').style.display='flex'">説明</button>
+  </div>
 
-<div id="startScreen">
-  <h1>スマブラ風バトルゲーム</h1>
-  <button onclick="startGame()">スタート</button>
-  <button onclick="document.getElementById('explanationModal').style.display='flex'">説明</button>
-</div>
+  <div id="explanationModal">
+    <p>← → 移動、↑ ジャンプ、スペース 攻撃、X/M 必殺技</p>
+    <button onclick="document.getElementById('explanationModal').style.display='none'">閉じる</button>
+  </div>
 
-<div id="explanationModal">
-  <p>← → 移動、↑ ジャンプ、スペース 攻撃、X/M 必殺技</p>
-  <button onclick="document.getElementById('explanationModal').style.display='none'">閉じる</button>
-</div>
+  <div id="winMessage">
+    <div id="winnerText"></div>
+    <p id="winnerQuote"></p>
+    <button onclick="location.reload()">もう一度</button>
+  </div>
 
-<div id="winMessage">
-  <div id="winnerText"></div>
-  <p id="winnerQuote"></p>
-  <button onclick="location.reload()">もう一度</button>
-</div>
+  <div id="ui">
+    <div>PLAYER HP<div class="bar"><div id="playerHp" class="bar-inner"></div></div></div>
+    <div>CPU HP<div class="bar"><div id="enemyHp" class="bar-inner"></div></div></div>
+  </div>
 
-<div id="ui">
-  <div>PLAYER HP<div class="bar"><div id="playerHp" class="bar-inner"></div></div></div>
-  <div>CPU HP<div class="bar"><div id="enemyHp" class="bar-inner"></div></div></div>
-</div>
+  <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <div id="specialEffect"></div>
 
-<canvas id="gameCanvas" width="960" height="540"></canvas>
-<div id="specialEffect"></div>
-<audio id="specialSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_abe9dd2c81.mp3" preload="auto"></audio>
+  <audio id="specialSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_abe9dd2c81.mp3" preload="auto"></audio>
 
-<script>
-  let canvas, ctx;
-  let player, cpu;
-  let keys = {};
-  let gameInterval;
+  <script>
+    // 定数
+    const gravity = 0.5;
+    const jumpPower = 12;
 
-  // 物理パラメータ
-  const gravity = 0.6;
-  const jumpPower = 13;
-  const moveSpeed = 5;
+    let canvas, ctx, player, cpu, keys = {}, gameInterval;
 
-  // ブロック配列
-  let blocks = [];
-  const blockCount = 5;
-  const blockWidth = 120;
-  const blockHeight = 20;
+    // ブロック群（ランダム配置）
+    let blocks = [];
 
-  // キャラ画像（適宜差し替えてください）
-  let playerImg = new Image();
-  let cpuImg = new Image();
-  playerImg.src = 'yuta.png';    // プレイヤー画像パス
-  cpuImg.src = 'zombie.png';     // CPU画像パス
+    // 画像
+    let playerImg = new Image();
+    let cpuImg = new Image();
+    playerImg.src = 'yuta.png';  // 適宜差し替え
+    cpuImg.src = 'zombie.png';   // 適宜差し替え
 
-  function startGame() {
-    document.getElementById('startScreen').style.display = 'none';
-    document.getElementById('gameCanvas').style.display = 'block';
-    document.getElementById('ui').style.display = 'flex';
-
-    canvas = document.getElementById('gameCanvas');
-    ctx = canvas.getContext('2d');
-
-    player = { x: 100, y: 440, w: 50, h: 100, vx: 0, vy: 0, hp: 100, onGround: false };
-    cpu = { x: 800, y: 440, w: 50, h: 100, vx: 0, vy: 0, hp: 100, onGround: false, dir: -1 };
-
-    blocks = [];
-    for(let i=0; i<blockCount; i++){
-      let blockX = Math.random() * (canvas.width - blockWidth - 40) + 20;
-      let blockY = Math.random() * (canvas.height - 200 - blockHeight) + 200;
-      blocks.push({ x: blockX, y: blockY, w: blockWidth, h: blockHeight });
-    }
-    blocks.push({ x: 0, y: canvas.height - 20, w: canvas.width, h: 20 });
-
-    gameInterval = setInterval(updateGame, 1000 / 60);
-  }
-
-  // キー操作
-  document.addEventListener('keydown', e => {
-    keys[e.key.toLowerCase()] = true;
-    if (e.key.toLowerCase() === 'x' || e.key.toLowerCase() === 'm') triggerSpecial();
-  });
-  document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-
-  // 衝突判定（矩形同士）
-  function isColliding(a, b) {
-    return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
-  }
-
-  // 床判定（y軸制御）
-  function checkFloor(character) {
-    character.onGround = false;
-    for(let b of blocks){
-      // X範囲内かつ、キャラの足がブロックの上に近づいたら床判定する
-      if(
-        character.x + character.w > b.x &&
-        character.x < b.x + b.w &&
-        character.y + character.h <= b.y + 10 && // 少しの許容
-        character.y + character.h + character.vy >= b.y // 次フレームで床に着く
-      ){
-        character.y = b.y - character.h;
-        character.vy = 0;
-        character.onGround = true;
-        break;
+    function createBlocks() {
+      blocks = [];
+      const blockCount = 5;
+      const blockWidth = 120;
+      const blockHeight = 20;
+      for(let i=0; i<blockCount; i++){
+        let x = Math.random() * (canvas.width - blockWidth);
+        // 地面から100〜300pxの高さにランダム配置
+        let y = 400 - Math.random() * 200;
+        blocks.push({x:x, y:y, w:blockWidth, h:blockHeight});
       }
     }
-  }
 
-  // CPU移動処理
-  function cpuMove() {
-    cpu.vx = cpu.dir * moveSpeed;
-    if (cpu.x <= 0) cpu.dir = 1;
-    if (cpu.x >= canvas.width - cpu.w) cpu.dir = -1;
-    cpu.x += cpu.vx;
-  }
+    function startGame(){
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('gameCanvas').style.display = 'block';
+      document.getElementById('ui').style.display = 'flex';
 
-  function updateGame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas = document.getElementById('gameCanvas');
+      ctx = canvas.getContext('2d');
 
-    // プレイヤー移動
-    player.vx = 0;
-    if (keys['arrowleft']) player.vx = -moveSpeed;
-    if (keys['arrowright']) player.vx = moveSpeed;
+      createBlocks();
 
-    if (keys['arrowup'] && player.onGround) {
-      player.vy = -jumpPower;
-      player.onGround = false;
+      // プレイヤー初期化
+      player = {
+        x: 100,
+        y: 440,
+        w: 50,
+        h: 100,
+        hp: 100,
+        vx: 0,
+        vy: 0,
+        onGround: false
+      };
+
+      // CPU初期化
+      cpu = {
+        x: 800,
+        y: 440,
+        w: 50,
+        h: 100,
+        hp: 100,
+        vx: 2,
+        vy: 0,
+        onGround: false,
+        dir: -1,
+        moveArea: {min: 480, max: 880}  // 画面右半分で移動
+      };
+
+      keys = {};
+
+      gameInterval = setInterval(updateGame, 1000 / 60);
     }
 
-    // 重力加算
-    player.vy += gravity;
-    player.x += player.vx;
-    player.y += player.vy;
-    checkFloor(player);
+    document.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if(k === 'arrowleft') keys['left'] = true;
+      if(k === 'arrowright') keys['right'] = true;
+      if(k === 'arrowup') keys['jump'] = true;
+      if(k === ' ') keys['atk'] = true;
+      if(k === 'x' || k === 'm') triggerSpecial();
+    });
+    document.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if(k === 'arrowleft') keys['left'] = false;
+      if(k === 'arrowright') keys['right'] = false;
+      if(k === 'arrowup') keys['jump'] = false;
+      if(k === ' ') keys['atk'] = false;
+    });
 
-    // 攻撃判定
-    if (keys[' ']) {
-      if (Math.abs(player.x - cpu.x) < 60 && Math.abs(player.y - cpu.y) < 50) cpu.hp -= 0.5;
+    // 床判定（y軸制御）
+    function checkFloor(character){
+      character.onGround = false;
+      for(let b of blocks){
+        if(
+          character.x + character.w > b.x &&
+          character.x < b.x + b.w &&
+          character.y + character.h <= b.y + 15 && // 床に接近したときに判定
+          character.y + character.h + character.vy >= b.y
+        ){
+          character.y = b.y - character.h;
+          character.vy = 0;
+          character.onGround = true;
+          break;
+        }
+      }
+      // 地面判定（画面下）
+      if(character.y + character.h >= 540){
+        character.y = 540 - character.h;
+        character.vy = 0;
+        character.onGround = true;
+      }
     }
 
-    // CPU移動・重力・床判定
-    cpuMove();
-    cpu.vy += gravity;
-    cpu.y += cpu.vy;
-    checkFloor(cpu);
+    function updateGame(){
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // CPU攻撃判定
-    if (Math.abs(cpu.x - player.x) < 60 && Math.abs(cpu.y - player.y) < 50) player.hp -= 0.3;
+      // プレイヤー操作
+      player.vx = 0;
+      if(keys['left']) player.vx = -5;
+      if(keys['right']) player.vx = 5;
+      if(keys['jump'] && player.onGround){
+        player.vy = -jumpPower;
+        player.onGround = false;
+      }
 
-    // 画面外制限
-    player.x = Math.min(Math.max(player.x, 0), canvas.width - player.w);
-    cpu.x = Math.min(Math.max(cpu.x, 0), canvas.width - cpu.w);
-    player.y = Math.min(player.y, canvas.height - player.h);
-    cpu.y = Math.min(cpu.y, canvas.height - cpu.h);
+      // 重力
+      player.vy += gravity;
 
-    // 描画
+      // 位置更新
+      player.x += player.vx;
+      player.y += player.vy;
 
-    // ブロック描画
-    ctx.fillStyle = '#666';
-    for(let b of blocks){
-      ctx.fillRect(b.x, b.y, b.w, b.h);
+      checkFloor(player);
+
+      // 攻撃処理
+      if(keys['atk']){
+        if(Math.abs(player.x - cpu.x) < 60 && Math.abs(player.y - cpu.y) < 50){
+          cpu.hp -= 0.5;
+        }
+      }
+
+      // CPU移動
+      cpu.vx = cpu.dir * 2;
+      cpu.vy += gravity;
+      cpu.x += cpu.vx;
+      cpu.y += cpu.vy;
+      checkFloor(cpu);
+
+      // CPUが移動範囲外に出たら反転
+      if(cpu.x < cpu.moveArea.min) cpu.dir = 1;
+      if(cpu.x + cpu.w > cpu.moveArea.max) cpu.dir = -1;
+
+      // CPU攻撃判定
+      if(Math.abs(cpu.x - player.x) < 60 && Math.abs(cpu.y - player.y) < 50){
+        player.hp -= 0.3;
+      }
+
+      // 画面端の移動制限
+      if(player.x < 0) player.x = 0;
+      if(player.x + player.w > canvas.width) player.x = canvas.width - player.w;
+
+      // ブロックの描画
+      ctx.fillStyle = '#555';
+      for(let b of blocks){
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+      }
+
+      // キャラ描画
+      ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+      ctx.drawImage(cpuImg, cpu.x, cpu.y, cpu.w, cpu.h);
+
+      // HPバー更新
+      document.getElementById('playerHp').style.width = player.hp + '%';
+      document.getElementById('enemyHp').style.width = cpu.hp + '%';
+
+      // 勝敗判定
+      if(player.hp <= 0 || cpu.hp <= 0){
+        clearInterval(gameInterval);
+        const winner = player.hp > cpu.hp ? 'PLAYER' : 'CPU';
+        const msg = winner === 'PLAYER' ? 'あほんだら！' : 'CPUの勝利...もっと鍛えよう！';
+        document.getElementById('winnerText').textContent = winner + ' WINS!';
+        document.getElementById('winnerQuote').textContent = msg;
+        document.getElementById('winMessage').style.display = 'flex';
+      }
     }
 
-    // キャラ描画
-    ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
-    ctx.drawImage(cpuImg, cpu.x, cpu.y, cpu.w, cpu.h);
-
-    // HPバー更新
-    document.getElementById('playerHp').style.width = player.hp + '%';
-    document.getElementById('enemyHp').style.width = cpu.hp + '%';
-
-    // 勝敗判定
-    if (player.hp <= 0 || cpu.hp <= 0) {
-      clearInterval(gameInterval);
-      const winner = player.hp > cpu.hp ? 'PLAYER' : 'CPU';
-      const msg = winner === 'PLAYER' ? 'あほんだら！' : 'CPUの勝利...もっと鍛えよう！';
-      document.getElementById('winnerText').textContent = winner + ' WINS!';
-      document.getElementById('winnerQuote').textContent = msg;
-      document.getElementById('winMessage').style.display = 'flex';
+    function triggerSpecial(){
+      const fx = document.getElementById('specialEffect');
+      const audio = document.getElementById('specialSound');
+      fx.style.left = (player.x + 25) + 'px';
+      fx.style.top = (player.y + 20) + 'px';
+      fx.style.animation = 'boom 0.6s ease-out';
+      fx.style.opacity = 1;
+      if(Math.abs(player.x - cpu.x) < 100 && Math.abs(player.y - cpu.y) < 60) cpu.hp -= 5;
+      audio.currentTime = 0; audio.play();
+      setTimeout(() => {
+        fx.style.animation = 'none';
+        fx.style.opacity = 0;
+      }, 600);
     }
-  }
-
-  function triggerSpecial() {
-    const fx = document.getElementById('specialEffect');
-    const audio = document.getElementById('specialSound');
-    fx.style.left = (player.x + 25) + 'px';
-    fx.style.top = (player.y + 20) + 'px';
-    fx.style.animation = 'boom 0.6s ease-out';
-    fx.style.opacity = 1;
-    if (Math.abs(player.x - cpu.x) < 100 && Math.abs(player.y - cpu.y) < 60) cpu.hp -= 5;
-    audio.currentTime = 0; audio.play();
-    setTimeout(() => {
-      fx.style.animation = 'none';
-      fx.style.opacity = 0;
-    }, 600);
-  }
-</script>
-
+  </script>
 </body>
 </html>
